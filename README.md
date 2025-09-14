@@ -2,7 +2,7 @@
 
 <img src="https://i.imgur.com/CuRkjdU.jpeg" width="512">
 
-**pfUI-CustomMedia** is a lightweight plugin for [pfUI](https://github.com/shagu/pfUI), providing a selection of custom textures to be used on your unitframes, castbar, xpbar, etc.
+**pfUI-CustomMedia** is a lightweight plugin for [pfUI](https://github.com/shagu/pfUI). Provides a selection of custom textures to be used on your unitframes, castbar, xpbar, etc. New fonts, new button backgrounds, new gryphons.
 
 ## Installation (Vanilla, 1.12)
 1. Download **[Latest Version](https://github.com/mr-rosh/pfUI-CustomMedia/archive/master.zip)**
