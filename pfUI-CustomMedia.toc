@@ -1,0 +1,12 @@
+## Interface: 11200
+## Title: |cff33ffccpf|cffffffffUI|cffaaaaaa [Custom Media]
+## Author: Mr_Rosh
+## Notes: External module for |cff33ffccpf|cffffffffUI
+## Version: 2.0
+## Dependencies: pfUI
+
+# main
+pfUI-CustomMedia-bars.lua
+pfUI-CustomMedia-buttons.lua
+pfUI-CustomMedia-fonts.lua
+pfUI-CustomMedia-gryphons.lua
