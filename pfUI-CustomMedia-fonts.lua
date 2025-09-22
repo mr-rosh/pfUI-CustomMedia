@@ -27,7 +27,8 @@ if addonpath then
     { "BubblegumSans-Regular.ttf", "BubblegumSans" },
     { "Grandstander-Regular.ttf", "Grandstander" },
     { "Pangolin-Regular.ttf", "Pangolin" },
-    { "itcquorum_bold.ttf", "ITCQuorum" }
+    { "itcquorum_bold.ttf", "ITCQuorum" },
+    { "NiceDamage.ttf", "NiceDamage" }
   }
   
   local dropdown = pfUI.gui.dropdowns.fonts
