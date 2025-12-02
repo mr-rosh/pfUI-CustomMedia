@@ -13,17 +13,34 @@ end
 
 if not pfUI.gui.dropdowns.gryphons then pfUI.gui.dropdowns.gryphons = {} end
 
--- Ordered list of gryphons for consistent dropdown ordering
+-- Ordered list of available gryphons for consistent dropdown ordering
 local gryphons = {
   {name = "Demon", path = "demon"},
   {name = "Diablo 1", path = "diablo1"},
   {name = "Diablo 2", path = "diablo2"},
   {name = "Diablo 3", path = "diablo3"},
   {name = "Diablo 4", path = "diablo4"},
+  {name = "Diablo 3 Crest", path = "diablo3crest"},
   {name = "Dragon", path = "dragon"},
+  {name = "Gryphon 2", path = "gryphon2"},
   {name = "New Gryphon", path = "gryphonnew"},
+  {name = "Lion 2", path = "lion2"},
   {name = "New Lion", path = "lionnew"},
   {name = "Winged Lion", path = "wingedlion"},
+  {name = "Crest", path = "crest"},
+  {name = "Dwarf", path = "dwarf"},
+  {name = "Ghoul", path = "ghoul"},
+  {name = "Gnome", path = "gnome"},
+  {name = "Human", path = "human"},
+  {name = "Murloc", path = "murloc"},
+  {name = "Murloc 2", path = "murloc2"},
+  {name = "Murloc 3", path = "murloc3"},
+  {name = "Night Elf", path = "nightelf"},
+  {name = "Orc", path = "orc"},
+  {name = "Skull", path = "skull"},
+  {name = "Squid", path = "SquidModDefault"},
+  {name = "Tauren", path = "tauren"},
+  {name = "Troll", path = "troll"},
 }
 
 -- Function to add custom textures

@@ -29,16 +29,21 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
   C.CustomMedia.bags_color = C.CustomMedia.bags_color or "1,1,1,0.5"
   C.CustomMedia.debug = false -- turn true if you want print statements
 
+  local function L(key)
+    return T[key] or key
+  end
+
   local texture_options = {
-    "Default:" .. T["Default"],
-    "Wings:" .. T["Wings"],
-    "Lion:" .. T["Lion"],
-    "Eagle:" .. T["Eagle"],
-    "Grunge:" .. T["Grunge"],
-    "Textured:" .. T["Textured"],
-    "Transparent:" .. T["Transparent"],
-    "Dragon:" .. T["Dragon"],
-    "Skull:" .. T["Skull"]
+    "Default:" .. L("Default"),
+    "Wings:" .. L("Wings"),
+    "Lion:" .. L("Lion"),
+    "Eagle:" .. L("Eagle"),
+    "Grunge:" .. L("Grunge"),
+    "Textured:" .. L("Textured"),
+    "Transparent:" .. L("Transparent"),
+    "Dragon:" .. L("Dragon"),
+    "Sword:" .. L("Sword"),
+    "Skull:" .. L("Skull")
   }
   
   pfUI.gui.dropdowns.CustomMedia_actionbar = texture_options
@@ -59,6 +64,7 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
     Textured = addonpath .. "\\backgrounds\\textured",
     Transparent = addonpath .. "\\backgrounds\\transparent",
     Dragon = addonpath .. "\\backgrounds\\dragon",
+    Sword = addonpath .. "\\backgrounds\\sword",
     Skull = addonpath .. "\\backgrounds\\skull"
   }
 
