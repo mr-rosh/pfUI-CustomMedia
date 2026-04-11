@@ -2,7 +2,7 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
   if not pfUI then return end
   
   -- Cache frequently used globals
-  local _G = getfenv(0)
+  local _G = _G
   local strfind = strfind
   local strsplit = strsplit
   local tonumber = tonumber
@@ -27,7 +27,7 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
   -- Bags settings
   C.CustomMedia.bags_texture = C.CustomMedia.bags_texture or "Default"
   C.CustomMedia.bags_color = C.CustomMedia.bags_color or "1,1,1,0.5"
-  C.CustomMedia.debug = false -- turn true if you want print statements
+  local debug_enabled = false
 
   local function L(key)
     return T[key] or key
@@ -50,7 +50,7 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
   pfUI.gui.dropdowns.CustomMedia_bags = texture_options
 
   local function PrintDebug(msg)
-    if C.CustomMedia.debug then
+    if debug_enabled then
       DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99[CustomMedia]:|r " .. msg)
     end
   end
@@ -72,14 +72,22 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
     return textures[selection] or nil
   end
 
+  local function ClampColor(val, fallback)
+    val = tonumber(val)
+    if not val then return fallback end
+    if val < 0 then return 0 end
+    if val > 1 then return 1 end
+    return val
+  end
+
   local function GetStringColor(color)
     if type(color) == "string" then
       local r, g, b, a = strsplit(",", color)
-      return tonumber(r), tonumber(g), tonumber(b), tonumber(a) or 1
+      return ClampColor(r, 1), ClampColor(g, 1), ClampColor(b, 1), ClampColor(a, 1)
     elseif type(color) == "table" then
-      return color.r or 1, color.g or 1, color.b or 1, color.a or 1
+      return ClampColor(color.r, 1), ClampColor(color.g, 1), ClampColor(color.b, 1), ClampColor(color.a, 1)
     end
-    return 1, 1, 1, 1 -- default to white if no valid color is provided
+    return 1, 1, 1, 1
   end
 
   local function ApplyBackground(texture, r, g, b, a, frame)

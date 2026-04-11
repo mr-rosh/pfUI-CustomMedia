@@ -69,8 +69,8 @@ else
   
   local frame = CreateFrame("Frame")
   frame:RegisterEvent("ADDON_LOADED")
-  frame:SetScript("OnEvent", function(self, event, addonName)
-    if addonName == "pfUI" then
+  frame:SetScript("OnEvent", function()
+    if arg1 == "pfUI" then
       AddCustomGryphons()
     end
   end)
