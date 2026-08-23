@@ -14,12 +14,18 @@ end
 if addonpath then
   local fonts = {
     { "Acme-Regular.ttf", "Acme" },
+    { "AtkinsonHyperlegible-Regular.ttf", "Atkinson Hyperlegible" },
     { "AlegreyaSansSC-Bold.ttf", "AlegreyaSansSC" },
     { "Bangers-Regular.ttf", "Bangers" },
     { "BarlowCondensed-Medium.ttf", "BarlowCondensed" },
+    { "Cinzel-Regular.ttf", "Cinzel" },
     { "FjallaOne-Regular.ttf", "FjallaOne" },
     { "FTY.ttf", "FTY" },
+    { "im-fell-english-sc.ttf", "IMFellSC" },
+    { "Karla-Regular.ttf", "Karla" },
     { "Kingthings Foundation.ttf", "Kingthings" },
+    { "LibreBaskerville-Regular.ttf", "Libre Baskerville" },
+    { "MarcellusSC-Regular.ttf", "MarcellusSC" },
     { "PathwayGothicOne-Regular.ttf", "PathwayGothicOne" },
     { "RoadRage-Regular.ttf", "RoadRage" },
     { "US101.ttf", "US101" },
