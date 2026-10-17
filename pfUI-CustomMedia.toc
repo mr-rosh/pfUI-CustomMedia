@@ -2,7 +2,8 @@
 ## Title: |cff33ffccpf|cffffffffUI|cffaaaaaa [Custom Media]
 ## Author: Mr_Rosh
 ## Notes: External module for |cff33ffccpf|cffffffffUI
-## Version: 2.0
+## Version: 2.2.0
+## X-Date: 2026-10-17
 ## Dependencies: pfUI
 
 # main

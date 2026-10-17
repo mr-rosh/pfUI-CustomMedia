@@ -1,8 +1,8 @@
-if not pfUI then return end
+if not pfUI or type(pfUI.gui) ~= "table" or type(pfUI.gui.dropdowns) ~= "table" then return end
 
 local addonpath
 local tocs = { "", "-master", "-tbc", "-wotlk" }
-for _, name in pairs(tocs) do
+for _, name in ipairs(tocs) do
   local current = string.format("pfUI-CustomMedia%s", name)
   local _, title = GetAddOnInfo(current)
   if title then
@@ -24,7 +24,6 @@ if addonpath then
     { "FjallaOne-Regular.ttf", "FjallaOne" },
     { "FTY.ttf", "FTY" },
     { "im-fell-english-sc.ttf", "IMFellSC" },
-    { "Karla-Regular.ttf", "Karla" },
     { "Kingthings Foundation.ttf", "Kingthings" },
     { "LibreBaskerville-Regular.ttf", "LibreBaskerville" },
     { "Marcellus-Regular.ttf", "Marcellus" },
@@ -41,7 +40,9 @@ if addonpath then
   }
   
   local dropdown = pfUI.gui.dropdowns.fonts
-  for _, font in pairs(fonts) do
-    table.insert(dropdown, string.format("%s\\fonts\\%s:%s", addonpath, font[1], font[2]))
+  if type(dropdown) == "table" then
+    for _, font in ipairs(fonts) do
+      table.insert(dropdown, string.format("%s\\fonts\\%s:%s", addonpath, font[1], font[2]))
+    end
   end
 end

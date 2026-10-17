@@ -1,5 +1,7 @@
+if not pfUI or type(pfUI.RegisterModule) ~= "function" then return end
+
 pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
-  if not pfUI then return end
+  if type(pfUI.gui) ~= "table" or type(pfUI.gui.dropdowns) ~= "table" or type(C) ~= "table" then return end
   
   -- Cache frequently used globals
   local _G = getfenv(0)
@@ -11,7 +13,7 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
   
   local addonpath
   local tocs = { "", "-master", "-tbc", "-wotlk" }
-  for _, name in pairs(tocs) do
+  for _, name in ipairs(tocs) do
     local current = string.format("pfUI-CustomMedia%s", name)
     local _, title = GetAddOnInfo(current)
     if title then
@@ -19,6 +21,8 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
       break
     end
   end
+  if not addonpath then return end
+  local translations = T or {}
 
   if not C.CustomMedia then C.CustomMedia = {} end
   -- Action bar settings
@@ -30,7 +34,7 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
   C.CustomMedia.debug = false -- turn true if you want print statements
 
   local function L(key)
-    return T[key] or key
+    return translations[key] or key
   end
 
   local texture_options = {
@@ -42,7 +46,6 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
     "Textured:" .. L("Textured"),
     "Transparent:" .. L("Transparent"),
     "Dragon:" .. L("Dragon"),
-    "Sword:" .. L("Sword"),
     "Skull:" .. L("Skull")
   }
   
@@ -64,7 +67,6 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
     Textured = addonpath .. "\\backgrounds\\textured",
     Transparent = addonpath .. "\\backgrounds\\transparent",
     Dragon = addonpath .. "\\backgrounds\\dragon",
-    Sword = addonpath .. "\\backgrounds\\sword",
     Skull = addonpath .. "\\backgrounds\\skull"
   }
 
@@ -83,7 +85,9 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
   end
 
   local function ApplyBackground(texture, r, g, b, a, frame)
-    if not frame or not frame:IsShown() then return end
+    -- Style hidden buttons too. pfUI creates most buttons during login and
+    -- reveals them later when their bar, stance, bag, or bank becomes active.
+    if not frame then return end
     if not frame.bg then
       frame.bg = frame:CreateTexture(nil, "BACKGROUND")
       frame.bg:SetDrawLayer("BACKGROUND", -8)
@@ -217,28 +221,30 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
   end)
 
   -- GUI config
-  if pfUI.gui and pfUI.gui.UpdaterFunctions then
-    pfUI.gui.UpdaterFunctions["CustomMedia"] = function()
-      UpdateAll()
-      DelayedUpdate()
-    end
+  if type(pfUI.gui.UpdaterFunctions) ~= "table" then
+    pfUI.gui.UpdaterFunctions = {}
+  end
+  pfUI.gui.UpdaterFunctions["CustomMedia"] = function()
+    UpdateAll()
+    DelayedUpdate()
   end
 
-  if pfUI.gui.CreateGUIEntry then
-    pfUI.gui.CreateGUIEntry(T["Thirdparty"], T["CustomMedia"], function()
+  if type(pfUI.gui.CreateGUIEntry) == "function" and type(pfUI.gui.CreateConfig) == "function" then
+    pfUI.gui.CreateGUIEntry(L("Thirdparty"), L("CustomMedia"), function()
       -- Action Bar Settings
-      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], T["Action Bar Background"], nil, nil, "header")
-      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], T["Select Texture"], C.CustomMedia, "actionbar_texture", "dropdown", pfUI.gui.dropdowns.CustomMedia_actionbar)
-      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], T["Pick Color"], C.CustomMedia, "actionbar_color", "color")
+      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], L("Action Bar Background"), nil, nil, "header")
+      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], L("Select Texture"), C.CustomMedia, "actionbar_texture", "dropdown", pfUI.gui.dropdowns.CustomMedia_actionbar)
+      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], L("Pick Color"), C.CustomMedia, "actionbar_color", "color")
       
       -- Bags Settings
-      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], T["Bags Background"], nil, nil, "header")
-      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], T["Select Texture"], C.CustomMedia, "bags_texture", "dropdown", pfUI.gui.dropdowns.CustomMedia_bags)
-      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], T["Pick Color"], C.CustomMedia, "bags_color", "color")
+      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], L("Bags Background"), nil, nil, "header")
+      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], L("Select Texture"), C.CustomMedia, "bags_texture", "dropdown", pfUI.gui.dropdowns.CustomMedia_bags)
+      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], L("Pick Color"), C.CustomMedia, "bags_color", "color")
     end)
-  else
-    pfUI.gui.tabs.thirdparty.tabs.CustomMedia = pfUI.gui.tabs.thirdparty.tabs:CreateTabChild("CustomMedia", true)
-    pfUI.gui.tabs.thirdparty.tabs.CustomMedia:SetScript("OnShow", function()
+  elseif type(pfUI.gui.tabs) == "table" and type(pfUI.gui.tabs.thirdparty) == "table" and pfUI.gui.tabs.thirdparty.tabs and type(pfUI.gui.tabs.thirdparty.tabs.CreateTabChild) == "function" then
+    local tabs = pfUI.gui.tabs.thirdparty.tabs
+    tabs.CustomMedia = tabs:CreateTabChild("CustomMedia", true)
+    tabs.CustomMedia:SetScript("OnShow", function()
       if not this.setup then
         this.setup = true
         DelayedUpdate()

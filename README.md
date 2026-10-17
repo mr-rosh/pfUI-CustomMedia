@@ -17,3 +17,11 @@
 3. Rename the folder "pfUI-CustomMedia-master" to "pfUI-CustomMedia-tbc"
 4. Copy "pfUI-CustomMedia-tbc" into Wow-Directory\Interface\AddOns
 5. Restart Wow
+
+## Changelog
+
+### 2.2.0 (2026-10-17)
+- Removed menu entries for the missing Karla font and Sword button background.
+- Apply custom backgrounds to pfUI buttons even when they are currently hidden.
+- Guard optional pfUI menus and GUI methods so missing interfaces do not cause Lua errors.
+- Prevent duplicate gryphon entries and keep font menu ordering stable.

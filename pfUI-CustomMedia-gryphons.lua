@@ -2,7 +2,7 @@ if not pfUI then return end
 
 local addonpath
 local tocs = { "", "-master", "-tbc", "-wotlk" }
-for _, name in pairs(tocs) do
+for _, name in ipairs(tocs) do
   local current = string.format("pfUI-CustomMedia%s", name)
   local _, title = GetAddOnInfo(current)
   if title then
@@ -11,7 +11,9 @@ for _, name in pairs(tocs) do
   end
 end
 
-if not pfUI.gui.dropdowns.gryphons then pfUI.gui.dropdowns.gryphons = {} end
+if type(pfUI.gui) == "table" and type(pfUI.gui.dropdowns) == "table" and type(pfUI.gui.dropdowns.gryphons) ~= "table" then
+  pfUI.gui.dropdowns.gryphons = {}
+end
 
 -- Ordered list of available gryphons for consistent dropdown ordering
 local gryphons = {
@@ -45,21 +47,32 @@ local gryphons = {
 
 -- Function to add custom textures
 local function AddCustomGryphons()
-  if pfUI and pfUI.gryphons and pfUI.gryphons.textures then
-    for i, gryphon in ipairs(gryphons) do
-      local fullpath = string.format("%s\\gryphons\\%s.tga", addonpath, gryphon.path)
-      pfUI.gryphons.textures[gryphon.name] = fullpath
-      table.insert(pfUI.gui.dropdowns.gryphons, string.format("%s:%s", gryphon.name, gryphon.name))
+  if not addonpath or type(pfUI.gryphons) ~= "table" or type(pfUI.gryphons.textures) ~= "table" then return end
+  if type(pfUI.gui) ~= "table" or type(pfUI.gui.dropdowns) ~= "table" then return end
+  if type(pfUI.gui.dropdowns.gryphons) ~= "table" then pfUI.gui.dropdowns.gryphons = {} end
+  local dropdown = pfUI.gui.dropdowns.gryphons
+
+  for _, gryphon in ipairs(gryphons) do
+    local fullpath = string.format("%s\\gryphons\\%s.tga", addonpath, gryphon.path)
+    pfUI.gryphons.textures[gryphon.name] = fullpath
+    local option = string.format("%s:%s", gryphon.name, gryphon.name)
+    local exists = false
+    for _, entry in ipairs(dropdown) do
+      if entry == option then
+        exists = true
+        break
+      end
     end
-    -- Force update the gryphons if they're already configured
-    if pfUI.gryphons.UpdateConfig then
-      pfUI.gryphons.UpdateConfig()
-    end
+    if not exists then table.insert(dropdown, option) end
+  end
+  -- Force update the gryphons if they're already configured
+  if type(pfUI.gryphons.UpdateConfig) == "function" then
+    pfUI.gryphons.UpdateConfig()
   end
 end
 
 -- Hook into pfUI's module registration system
-if pfUI and pfUI.RegisterModule then
+if type(pfUI.RegisterModule) == "function" then
   pfUI:RegisterModule("custom-gryphons", "vanilla:tbc", function()
     AddCustomGryphons()
   end)
@@ -69,9 +82,10 @@ else
   
   local frame = CreateFrame("Frame")
   frame:RegisterEvent("ADDON_LOADED")
-  frame:SetScript("OnEvent", function(self, event, addonName)
-    if addonName == "pfUI" then
+  frame:SetScript("OnEvent", function()
+    if event == "ADDON_LOADED" and arg1 == "pfUI" then
       AddCustomGryphons()
+      this:UnregisterEvent("ADDON_LOADED")
     end
   end)
 end
