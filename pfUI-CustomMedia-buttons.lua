@@ -240,6 +240,12 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
       pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], L("Bags Background"), nil, nil, "header")
       pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], L("Select Texture"), C.CustomMedia, "bags_texture", "dropdown", pfUI.gui.dropdowns.CustomMedia_bags)
       pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], L("Pick Color"), C.CustomMedia, "bags_color", "color")
+      pfUI.gui.CreateConfig(nil, "Gryphon Position", nil, nil, "header")
+      pfUI.gui.CreateConfig(nil, "Reset gryphons", nil, nil, "button", function()
+        if pfUI.customMedia and type(pfUI.customMedia.ResetGryphonDefaults) == "function" then
+          pfUI.customMedia.ResetGryphonDefaults()
+        end
+      end)
     end)
   elseif type(pfUI.gui.tabs) == "table" and type(pfUI.gui.tabs.thirdparty) == "table" and pfUI.gui.tabs.thirdparty.tabs and type(pfUI.gui.tabs.thirdparty.tabs.CreateTabChild) == "function" then
     local tabs = pfUI.gui.tabs.thirdparty.tabs
