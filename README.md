@@ -26,6 +26,7 @@ pfUI loads its gryphon module before this addon. Its built-in **No Anchor** valu
 
 ### 2.3.8 (2026-10-18)
 
+- Keep unit-frame status bar textures at a fixed scale as health, power, and druid mana values change.
 - Fix gryphon positioning, dragging, and anchor handling.
 - Add a position reset option that preserves gryphon appearance and anchor settings.
 - Clean up gryphon texture options and dropdown behavior.
