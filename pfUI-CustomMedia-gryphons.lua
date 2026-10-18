@@ -47,19 +47,17 @@ local function AddCustomGryphons()
   if type(pfUI.gui) ~= "table" or type(pfUI.gui.dropdowns) ~= "table" then return end
   if type(pfUI.gui.dropdowns.gryphons) ~= "table" then pfUI.gui.dropdowns.gryphons = {} end
   local dropdown = pfUI.gui.dropdowns.gryphons
+  local registered = {}
+  for _, entry in ipairs(dropdown) do registered[entry] = true end
 
   for _, gryphon in ipairs(gryphons) do
-    local fullpath = string.format("%s\\gryphons\\%s.tga", addonpath, gryphon.path)
+    local fullpath = addonpath .. "\\gryphons\\" .. gryphon.path .. ".tga"
     pfUI.gryphons.textures[gryphon.name] = fullpath
     local option = string.format("%s:%s", gryphon.name, gryphon.name)
-    local exists = false
-    for _, entry in ipairs(dropdown) do
-      if entry == option then
-        exists = true
-        break
-      end
+    if not registered[option] then
+      table.insert(dropdown, option)
+      registered[option] = true
     end
-    if not exists then table.insert(dropdown, option) end
   end
   -- Force update the gryphons if they're already configured
   if type(pfUI.gryphons.UpdateConfig) == "function" then
@@ -101,8 +99,21 @@ local function InstallMovableGryphons()
 
   local originalUpdate = pfUI.gryphons.UpdateConfig
   local movers = {}
+  local environment = type(pfUI.GetEnvironment) == "function" and pfUI:GetEnvironment() or _G
+  local config = environment.C and environment.C.bars and environment.C.bars.gryphons
+  local lastAnchors = type(config) == "table" and {
+    left = config.anchor_left,
+    right = config.anchor_right,
+  } or {}
   pfUI.gryphons.customMediaMovers = movers
   pfUI.gryphons.customMediaMoversInstalled = true
+
+  local function ClearSavedMoverPosition(name)
+    local saved = pfUI_config and pfUI_config.position
+    if type(saved) == "table" then saved[name] = nil end
+    local configured = environment.C and environment.C.position
+    if type(configured) == "table" then configured[name] = nil end
+  end
 
   local function UpdateMovers()
     -- The core gryphon updater uses SetPoint without clearing prior anchors.
@@ -111,7 +122,30 @@ local function InstallMovableGryphons()
     for _, frame in pairs(pfUI.gryphons.frames) do
       if frame then frame:ClearAllPoints() end
     end
+    -- pfUI's updater assumes that every anchor name resolves to a frame.
+    -- "None" (or an empty anchor) resolves to nil and SetParent(nil) crashes.
+    -- Use UIParent just for this update; keep the user's selected value intact.
+    local anchors = {}
+    if type(config) == "table" then
+      for position in pairs(moverNames) do
+        local key = "anchor_" .. position
+        anchors[key] = { value = config[key] }
+        if lastAnchors[position] ~= config[key] then
+          ClearSavedMoverPosition(moverNames[position])
+          local mover = movers[position]
+          if mover then mover:SetScale(1) end
+        end
+        if not config[key] or not _G[config[key]] then config[key] = "UIParent" end
+      end
+    end
     originalUpdate()
+    if type(config) == "table" then
+      for position in pairs(moverNames) do
+        local key = "anchor_" .. position
+        config[key] = anchors[key].value
+        lastAnchors[position] = anchors[key].value
+      end
+    end
     for position, name in pairs(moverNames) do
       local frame = pfUI.gryphons.frames[position]
       if frame then
@@ -125,6 +159,9 @@ local function InstallMovableGryphons()
         elseif not HasSavedMoverPosition(name) then
           CopyFramePosition(frame, mover)
         end
+        -- pfUI clamps movable frames when its offscreen option is disabled.
+        -- Gryphon movers must remain freely draggable past the screen edges.
+        mover:SetClampedToScreen(false)
 
         mover:SetWidth(frame:GetWidth())
         mover:SetHeight(frame:GetHeight())
@@ -163,31 +200,15 @@ local function ResetGryphonPosition()
   end
 end
 
-local function ResetGryphonDefaults()
-  if not C or type(C.bars) ~= "table" or type(C.bars.gryphons) ~= "table" then return end
-
-  local config = C.bars.gryphons
-  config.texture = "Gryphon"
-  config.color = ".6,.6,.6,1"
-  config.size = "64"
-  config.anchor_left = "pfActionBarLeft"
-  config.anchor_right = "pfActionBarRight"
-  config.offset_h = "-48"
-  config.offset_v = "-4"
-
-  ResetGryphonPosition()
-end
-
 if type(pfUI.GetEnvironment) == "function" then
   setfenv(ResetGryphonPosition, pfUI:GetEnvironment())
-  setfenv(ResetGryphonDefaults, pfUI:GetEnvironment())
 end
 pfUI.customMedia = pfUI.customMedia or {}
-pfUI.customMedia.ResetGryphonDefaults = ResetGryphonDefaults
+pfUI.customMedia.ResetGryphonPosition = ResetGryphonPosition
 
 local function InitializeCustomGryphons()
-  AddCustomGryphons()
   InstallMovableGryphons()
+  AddCustomGryphons()
 end
 
 -- Hook into pfUI's module registration system

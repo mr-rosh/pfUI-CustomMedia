@@ -241,9 +241,9 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
       pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], L("Select Texture"), C.CustomMedia, "bags_texture", "dropdown", pfUI.gui.dropdowns.CustomMedia_bags)
       pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], L("Pick Color"), C.CustomMedia, "bags_color", "color")
       pfUI.gui.CreateConfig(nil, "Gryphon Position", nil, nil, "header")
-      pfUI.gui.CreateConfig(nil, "Reset gryphons", nil, nil, "button", function()
-        if pfUI.customMedia and type(pfUI.customMedia.ResetGryphonDefaults) == "function" then
-          pfUI.customMedia.ResetGryphonDefaults()
+      pfUI.gui.CreateConfig(nil, "Reset position", nil, nil, "button", function()
+        if pfUI.customMedia and type(pfUI.customMedia.ResetGryphonPosition) == "function" then
+          pfUI.customMedia.ResetGryphonPosition()
         end
       end)
     end)
