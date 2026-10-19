@@ -17,10 +17,16 @@ end
 
 -- Keep the familiar gryphons first, then list the remaining options alphabetically.
 local gryphons = {
-  {name = "Gryphon2", path = "gryphonnew"},
-  {name = "Lion2", path = "lionnew"},
-  {name = "Crest", path = "crest"},
-  {name = "Demon", path = "demon"},
+  {name = "Gryphon Dragonflight", path = "GryphonDragonflight"},
+  {name = "Gryphon Forever", path = "GryphonForever"},
+  {name = "Gryphon Forever Mono", path = "GryphonForeverMono"},
+  {name = "Lion Dragonflight", path = "LionDragonflight"},
+  {name = "Lion Forever", path = "LionForever"},
+  {name = "Lion Forever Mono", path = "LionForeverMono"},
+  {name = "Winged Lion", path = "wingedlion"},
+  {name = "Dragon Dragonflight", path = "DragonDragonflight"},
+  {name = "Dragon Forever", path = "DragonForever"},
+  {name = "Dragon Forever Mono", path = "DragonForeverMono"},
   {name = "Diablo 1", path = "diablo1"},
   {name = "Diablo 2", path = "diablo2"},
   {name = "Diablo 3", path = "diablo3"},
@@ -29,16 +35,18 @@ local gryphons = {
   {name = "Ghoul", path = "ghoul"},
   {name = "Gnome", path = "gnome"},
   {name = "Human", path = "human"},
+  {name = "Leaf", path = "Leaf"},
   {name = "Murloc", path = "murloc"},
   {name = "Murloc 2", path = "murloc2"},
-  {name = "Murloc 3", path = "murloc3"},
   {name = "Night Elf", path = "nightelf"},
+  {name = "Octopus", path = "octopus"},
   {name = "Orc", path = "orc"},
   {name = "Skull", path = "skull"},
+  {name = "Skull 2", path = "skull2"},
   {name = "Squid", path = "SquidModDefault"},
   {name = "Tauren", path = "tauren"},
   {name = "Troll", path = "troll"},
-  {name = "Winged Lion", path = "wingedlion"},
+  {name = "Turtle", path = "turtle"},
 }
 
 -- Function to add custom textures
