@@ -14,7 +14,7 @@ end
 if not addonpath or type(pfUI.gui.dropdowns.uf_bartexture) ~= "table" then return end
 
 local function AddTextureNames(names)
-  for name in string.gfind(names, "[^\n]+") do
+  for name in string.gmatch(names, "[^\n]+") do
     name = string.gsub(name, "\r", "")
     if name ~= "" then
       table.insert(pfUI.gui.dropdowns.uf_bartexture, string.format("%s\\statusbars\\%s.tga:%s", addonpath, name, name))

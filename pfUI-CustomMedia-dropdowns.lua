@@ -74,20 +74,24 @@ local function SetupScrollableMenu(dropdown)
 
   menu:EnableMouseWheel(1)
   menu:SetScript("OnMouseWheel", function()
+    -- arg1 is the wheel delta; capture it into a local (Classic 1.12-safe).
+    local delta = arg1 or 0
     local maxOffset = math.max(0, state.count - (state.visibleRows or 0))
-    state.offset = math.max(0, math.min(maxOffset, state.offset - (arg1 or 0)))
+    state.offset = math.max(0, math.min(maxOffset, state.offset - delta))
     slider:SetValue(state.offset)
     RefreshRows()
   end)
 
   local originalShowMenu = dropdown.ShowMenu
   dropdown.ShowMenu = function(self)
+    if type(originalShowMenu) ~= "function" then return end
     originalShowMenu(self)
 
-    state.count = table.getn(self.menu or {})
+    state.count = #(self.menu or {})
     state.visibleRows = math.min(state.count, MAX_VISIBLE_ROWS)
     state.offset = math.min(state.offset, math.max(0, state.count - state.visibleRows))
 
+    -- Cache screen height once per open instead of querying every frame.
     local screenHeight = GetScreenHeight and GetScreenHeight() or 768
     local maxMenuHeight = math.max(ROW_HEIGHT + MENU_PADDING, screenHeight - 80)
     state.visibleRows = math.min(state.visibleRows, math.max(1, math.floor((maxMenuHeight - MENU_PADDING) / ROW_HEIGHT)))
@@ -130,9 +134,10 @@ local function SetupScrollableMenu(dropdown)
 
   local originalUpdateMenu = dropdown.UpdateMenu
   dropdown.UpdateMenu = function(self)
+    if type(originalUpdateMenu) ~= "function" then return end
     originalUpdateMenu(self)
     if self.menuframe:IsShown() then
-      state.count = table.getn(self.menu or {})
+      state.count = #(self.menu or {})
       state.visibleRows = math.min(state.count, MAX_VISIBLE_ROWS)
       state.offset = math.min(state.offset, math.max(0, state.count - state.visibleRows))
       self.menuframe:SetHeight(state.visibleRows * ROW_HEIGHT + MENU_PADDING)

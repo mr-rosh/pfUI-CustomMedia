@@ -208,9 +208,8 @@ local function ResetGryphonPosition()
   end
 end
 
-if type(pfUI.GetEnvironment) == "function" then
-  setfenv(ResetGryphonPosition, pfUI:GetEnvironment())
-end
+-- C and pfUI_config are already available in this module's environment via
+-- pfUI:GetEnvironment(), so no setfenv is needed here.
 pfUI.customMedia = pfUI.customMedia or {}
 pfUI.customMedia.ResetGryphonPosition = ResetGryphonPosition
 
@@ -227,14 +226,15 @@ if type(pfUI.RegisterModule) == "function" then
 else
   -- Fallback: try to add immediately and on events
   InitializeCustomGryphons()
-  
+
   local frame = CreateFrame("Frame")
   frame:RegisterEvent("ADDON_LOADED")
   frame:SetScript("OnEvent", function()
+    -- Capture event and arg1 into locals (Classic 1.12-safe).
+    local event, arg1 = event, arg1
     if event == "ADDON_LOADED" and arg1 == "pfUI" then
       InitializeCustomGryphons()
       this:UnregisterEvent("ADDON_LOADED")
     end
   end)
 end
-

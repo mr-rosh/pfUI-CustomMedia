@@ -2,15 +2,14 @@ if not pfUI or type(pfUI.RegisterModule) ~= "function" then return end
 
 pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
   if type(pfUI.gui) ~= "table" or type(pfUI.gui.dropdowns) ~= "table" or type(C) ~= "table" then return end
-  
+
   -- Cache frequently used globals
-  local _G = getfenv(0)
-  local strfind = strfind
+  local _G = _G
   local strsplit = strsplit
   local tonumber = tonumber
   local type = type
   local pairs = pairs
-  
+
   local addonpath
   local tocs = { "", "-master", "-tbc", "-wotlk" }
   for _, name in ipairs(tocs) do
@@ -22,7 +21,6 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
     end
   end
   if not addonpath then return end
-  local translations = T or {}
 
   if not C.CustomMedia then C.CustomMedia = {} end
   -- Action bar settings
@@ -33,22 +31,18 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
   C.CustomMedia.bags_color = C.CustomMedia.bags_color or "1,1,1,0.5"
   C.CustomMedia.debug = false -- turn true if you want print statements
 
-  local function L(key)
-    return translations[key] or key
-  end
-
   local texture_options = {
-    "Default:" .. L("Default"),
-    "Wings:" .. L("Wings"),
-    "Lion:" .. L("Lion"),
-    "Eagle:" .. L("Eagle"),
-    "Grunge:" .. L("Grunge"),
-    "Textured:" .. L("Textured"),
-    "Transparent:" .. L("Transparent"),
-    "Dragon:" .. L("Dragon"),
-    "Skull:" .. L("Skull")
+    "Default:Default",
+    "Wings:Wings",
+    "Lion:Lion",
+    "Eagle:Eagle",
+    "Grunge:Grunge",
+    "Textured:Textured",
+    "Transparent:Transparent",
+    "Dragon:Dragon",
+    "Skull:Skull"
   }
-  
+
   pfUI.gui.dropdowns.CustomMedia_actionbar = texture_options
   pfUI.gui.dropdowns.CustomMedia_bags = texture_options
 
@@ -104,7 +98,7 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
       frame.bg:Hide()
     end
     local icon = frame.icon or frame:GetNormalTexture()
-    if icon then 
+    if icon then
       icon:SetDrawLayer("ARTWORK", 1)
       icon:Show()
     end
@@ -126,12 +120,24 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
     { name = "pfActionBarPagingButton", count = 12 },
   }
 
+  -- Cache resolved button frames so we don't re-_G lookup every update pass.
+  local cachedButtons = {}
+  local function GetCachedButton(groupName, index)
+    local key = groupName .. index
+    local button = cachedButtons[key]
+    if not button then
+      button = _G[key]
+      cachedButtons[key] = button
+    end
+    return button
+  end
+
   local function UpdateButtons()
     local texture = GetTexture(C.CustomMedia.actionbar_texture)
     local r, g, b, a = GetStringColor(C.CustomMedia.actionbar_color)
     for _, group in ipairs(buttonGroups) do
       for i = 1, group.count do
-        local button = _G[group.name .. i]
+        local button = GetCachedButton(group.name, i)
         if button then
           ApplyBackground(texture, r, g, b, a, button)
         end
@@ -186,7 +192,9 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
   delayFrame:Hide()
 
   delayFrame:SetScript("OnUpdate", function()
-    elapsedTime = elapsedTime + arg1
+    -- Capture arg1 into a local (Classic 1.12-safe).
+    local elapsed = arg1 or 0
+    elapsedTime = elapsedTime + elapsed
     if elapsedTime >= delayTime then
       UpdateAll()
       delayFrame:Hide()
@@ -206,6 +214,9 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
   f:RegisterEvent("ADDON_LOADED")
 
   f:SetScript("OnEvent", function()
+    -- Capture event and arg1 into locals (Classic 1.12-safe).
+    local event, arg1 = event, arg1
+
     if event == "PLAYER_ENTERING_WORLD" or (event == "ADDON_LOADED" and arg1 == "pfUI") then
       DelayedUpdate()
       if event == "PLAYER_ENTERING_WORLD" then
@@ -230,16 +241,16 @@ pfUI:RegisterModule("CustomMedia", "vanilla:tbc", function()
   end
 
   if type(pfUI.gui.CreateGUIEntry) == "function" and type(pfUI.gui.CreateConfig) == "function" then
-    pfUI.gui.CreateGUIEntry(L("Thirdparty"), L("CustomMedia"), function()
+    pfUI.gui.CreateGUIEntry("Thirdparty", "CustomMedia", function()
       -- Action Bar Settings
-      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], L("Action Bar Background"), nil, nil, "header")
-      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], L("Select Texture"), C.CustomMedia, "actionbar_texture", "dropdown", pfUI.gui.dropdowns.CustomMedia_actionbar)
-      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], L("Pick Color"), C.CustomMedia, "actionbar_color", "color")
-      
+      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], "Action Bar Background", nil, nil, "header")
+      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], "Select Texture", C.CustomMedia, "actionbar_texture", "dropdown", pfUI.gui.dropdowns.CustomMedia_actionbar)
+      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], "Pick Color", C.CustomMedia, "actionbar_color", "color")
+
       -- Bags Settings
-      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], L("Bags Background"), nil, nil, "header")
-      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], L("Select Texture"), C.CustomMedia, "bags_texture", "dropdown", pfUI.gui.dropdowns.CustomMedia_bags)
-      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], L("Pick Color"), C.CustomMedia, "bags_color", "color")
+      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], "Bags Background", nil, nil, "header")
+      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], "Select Texture", C.CustomMedia, "bags_texture", "dropdown", pfUI.gui.dropdowns.CustomMedia_bags)
+      pfUI.gui.CreateConfig(pfUI.gui.UpdaterFunctions["CustomMedia"], "Pick Color", C.CustomMedia, "bags_color", "color")
       pfUI.gui.CreateConfig(nil, "Gryphon Position", nil, nil, "header")
       pfUI.gui.CreateConfig(nil, "Reset position", nil, nil, "button", function()
         if pfUI.customMedia and type(pfUI.customMedia.ResetGryphonPosition) == "function" then

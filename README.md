@@ -37,6 +37,16 @@ pfUI loads its gryphon module before this addon. Its built-in **No Anchor** valu
 
 - Add a scrollbar and mouse wheel scrolling to pfUI dropdown menus, with menus opening upward when there is not enough room below.
 
+### 2.3.9 (2026-10-24)
+
+- Replace deprecated Lua 5.1 APIs (`string.gfind`, `table.getn`, `getfenv`, `setfenv`) with modern equivalents.
+- Capture `event`/`arg1` into locals in all `OnEvent`/`OnUpdate` handlers (Classic 1.12-safe).
+- Cache resolved button frames so `_G` lookups are not repeated on every update pass.
+- Skip redundant `SetTexCoord` calls in staticbars when the bar fill fraction hasn't changed.
+- Cache `GetScreenHeight()` per dropdown menu open instead of querying every frame.
+- Remove dead `translations`/`L()` indirection in buttons module.
+- Bump version to 2.3.9; add `## SavedVariables` to both TOCs.
+
 ### 2.2.0 (2026-10-17)
 
 - Remove menu entries for the missing Karla font and Sword button background.

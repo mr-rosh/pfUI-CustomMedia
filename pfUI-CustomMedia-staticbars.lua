@@ -8,6 +8,10 @@ if not pfUI or not pfUI.uf then return end
 local function UpdateTexture(bar, texture, vertical)
   if not texture then return end
 
+  -- Skip redundant UV updates when the fill fraction hasn't actually changed.
+  -- This avoids re-issuing SetTexCoord on every DisplayValue/SetValue call
+  -- when the bar value is static.
+  local lastFrac = bar._pfUICustomMediaLastFrac
   local minimum, maximum
   if bar.GetMinMaxValues then
     minimum, maximum = bar:GetMinMaxValues()
@@ -29,6 +33,9 @@ local function UpdateTexture(bar, texture, vertical)
       if fraction < 0 then fraction = 0 elseif fraction > 1 then fraction = 1 end
     end
   end
+
+  if lastFrac == fraction then return end
+  bar._pfUICustomMediaLastFrac = fraction
 
   if vertical then
     -- A vertical fill grows upward from the bottom edge.
