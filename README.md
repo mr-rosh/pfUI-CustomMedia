@@ -2,7 +2,7 @@
 
 <img src="https://i.imgur.com/CuRkjdU.jpeg" width="512">
 
-**pfUI-CustomMedia** is a lightweight plugin for [pfUI](https://github.com/shagu/pfUI). It adds custom textures for unitframes, castbars, experience bars, action buttons, and gryphons, along with additional fonts and button backgrounds.
+**pfUI-CustomMedia** is a lightweight plugin for [pfUI](https://github.com/shagu/pfUI). It adds custom textures for unitframes, castbars, experience bars, action buttons, and gryphons, along with additional styling for pfUI's interface elements.
 
 ## Installation (Vanilla, 1.12)
 
@@ -18,24 +18,7 @@
 3. Copy the folder into `Wow-Directory/Interface/AddOns`.
 4. Restart WoW.
 
-## OctoWoW pfUI No Anchor fix
-
-pfUI loads its gryphon module before this addon. Its built-in **No Anchor** value can therefore crash on startup before CustomMedia can handle it. When using **No Anchor**, apply [the pfUI patch](patches/pfUI-no-anchor.patch) to `Interface/AddOns/pfUI/modules/gryphons.lua`.
-
 ## Changelog
-
-### 2.3.8 (2026-10-18)
-
-- Add new statusbar textures and fonts to the selection menus.
-- Add a pfUI styled scrollbar and mouse wheel scrolling to dropdown menus; menus open upward when there isn’t enough space below.
-- Fix gryphon positioning, dragging, and anchor handling.
-- Add a position reset option that preserves gryphon appearance and anchor settings.
-- Clean up gryphon texture options and dropdown behavior.
-- Simplify gryphon reset controls and improve their layout.
-
-### Unreleased
-
-- Add a scrollbar and mouse wheel scrolling to pfUI dropdown menus, with menus opening upward when there is not enough room below.
 
 ### 2.3.9 (2026-10-24)
 
@@ -46,6 +29,15 @@ pfUI loads its gryphon module before this addon. Its built-in **No Anchor** valu
 - Cache `GetScreenHeight()` per dropdown menu open instead of querying every frame.
 - Remove dead `translations`/`L()` indirection in buttons module.
 - Bump version to 2.3.9; add `## SavedVariables` to both TOCs.
+
+### 2.3.8 (2026-10-18)
+
+- Add new statusbar textures and fonts to the selection menus.
+- Add a pfUI styled scrollbar and mouse wheel scrolling to dropdown menus; menus open upward when there isn’t enough space below.
+- Fix gryphon positioning, dragging, and anchor handling.
+- Add a position reset option that preserves gryphon appearance and anchor settings.
+- Clean up gryphon texture options and dropdown behavior.
+- Simplify gryphon reset controls and improve their layout.
 
 ### 2.2.0 (2026-10-17)
 
