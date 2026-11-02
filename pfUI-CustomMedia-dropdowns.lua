@@ -1,181 +1,302 @@
--- Add a bounded, scrollable viewport to pfUI's custom dropdown widget.
--- This lives in CustomMedia so the shared pfUI addon files stay untouched.
-if not pfUI or type(pfUI.api) ~= "table" or type(pfUI.api.CreateDropDownButton) ~= "function" then return end
-
-local originalCreateDropDownButton = pfUI.api.CreateDropDownButton
-if pfUI.api.customMediaDropdownScrollable then return end
+-- ClassicAPI dropdown integration for pfUI-CustomMedia. This lives here so the
+-- shared pfUI files stay untouched.
+--
+-- pfUI (brues-code fork) builds its dropdowns with ClassicAPI's modern
+-- DropdownButton widget (CreateFrame("DropdownButton", ..., "pfUIDropdownTemplate")
+-- + SetupMenu), and that widget brings its own menu system with it:
+--   * a menu only scrolls when its root description opts in through
+--     SetScrollMode(maxHeightPixels), so long lists (bar textures, fonts,
+--     buttons, gryphons) are one giant list otherwise;
+--   * a menu always opens scrolled to its first row;
+--   * the rows of a texture picker give no hint of what they pick.
+--
+-- All three are handled from here.
+if not DropdownButtonMixin or type(DropdownButtonMixin.CreateDefaultRootMenuDescription) ~= "function" then
+  return end
+if DropdownButtonMixin.customMediaDropdowns then return end
 
 local ROW_HEIGHT = 20
-local MENU_PADDING = 4
-local MAX_VISIBLE_ROWS = 12
-local SCROLLBAR_WIDTH = 6
+local MAX_VISIBLE_ROWS = 14
+local MIN_VISIBLE_ROWS = 4
 
-local function SetupScrollableMenu(dropdown)
-  if dropdown.customMediaScroll then return end
+-- Texture previews.
+--
+-- pfUI's texture pickers pass the texture path as the radio's `data`
+-- (gui.lua: CreateRadio(text, IsSelected, SetSelected, value)), so the path is
+-- known per row. It cannot simply be SetTexture'd from the row initializer,
+-- though: ClassicAPI builds and initializes *every* row when it generates a
+-- menu, virtualized or not, and the bar texture list alone is ~400 files and
+-- 20 MB. 1.12 loads textures on the main thread, so that would freeze the
+-- client on every open and push the whole folder into texture memory.
+--
+-- So the initializer only attaches an empty swatch and records its path, and
+-- the path is loaded once the row is near the visible window.
+local PREVIEW_LEFT = 18
+local PREVIEW_RIGHT = 4
+local PREVIEW_INSET = 3
+local PREVIEW_ALPHA = 0.6
+-- rows loaded past each edge of the window, so scrolling a line or two never
+-- reaches a row that is still bare
+local PREVIEW_MARGIN = 3
 
-  local menu = dropdown.menuframe
-  if not menu then return end
+local function IsTexturePath(value)
+  if type(value) ~= "string" then return false end
+  local extension = value:lower():match("%.([%w_]+)$")
+  return extension == "tga" or extension == "blp"
+end
 
-  local state = { offset = 0, count = 0 }
-  dropdown.customMediaScroll = state
+local function EnsurePreview(frame)
+  if not frame or frame.customMediaPreviewLoaded then return end
+  local texture, path = frame.customMediaPreviewTex, frame.customMediaPreviewPath
+  if not texture or not path then return end
+  texture:SetTexture(path)
+  frame.customMediaPreviewLoaded = true
+end
 
-  local track = menu:CreateTexture(nil, "OVERLAY")
-  track:SetTexture(0, 0, 0, .35)
-  track:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -3, -3)
-  track:SetPoint("BOTTOMRIGHT", menu, "BOTTOMRIGHT", -3, 3)
-  track:SetWidth(SCROLLBAR_WIDTH)
-  track:Hide()
+-- The menu inserts one row frame per element into the scroll box's data
+-- provider and lays all rows out at a common height, so the visible window is
+-- plain division of the scroll offset. The offset is measured the way
+-- ScrollToElementDataIndex measures it, against the rows' extents from the top.
+local function PreviewScrollWindow(scrollBox)
+  local size = scrollBox:GetDataProviderSize()
+  if not size or size == 0 then return end
 
-  local slider = CreateFrame("Slider", nil, menu)
-  slider:SetOrientation("VERTICAL")
-  slider:SetFrameStrata("FULLSCREEN")
-  slider:SetFrameLevel(menu:GetFrameLevel() + 20)
-  slider:SetPoint("TOPLEFT", track, "TOPLEFT", 0, 0)
-  slider:SetPoint("BOTTOMRIGHT", track, "BOTTOMRIGHT", 0, 0)
-  slider:SetMinMaxValues(0, 0)
-  slider:SetValueStep(1)
-  slider:SetThumbTexture(pfUI.media["img:col"])
-  slider:SetWidth(SCROLLBAR_WIDTH)
-  local thumb = slider:GetThumbTexture()
-  if thumb then
-    thumb:SetTexture(.3, 1, .8, .5)
-    thumb:SetWidth(SCROLLBAR_WIDTH)
+  local rowExtent = scrollBox:GetElementExtent(1)
+  if type(rowExtent) ~= "number" or rowExtent <= 0 then
+    rowExtent = ROW_HEIGHT
   end
-  slider:Hide()
-  state.slider = slider
 
-  local function RefreshRows()
-    local visibleRows = state.visibleRows or 0
-    local itemRight = state.count > visibleRows and -(SCROLLBAR_WIDTH + 4) or -2
+  -- The scroll offset the view measures rows against starts at the upper
+  -- padding, so subtract it to keep the division in row units.
+  local offset = (scrollBox:GetDerivedScrollOffset() or 0) - (scrollBox:GetUpperPadding() or 0)
+  if offset < 0 then offset = 0 end
 
-    for _, entry in pairs(menu.elements or {}) do
-      local index = entry.id
-      if index and index >= 1 and index <= state.count then
-        entry:ClearAllPoints()
-        entry:SetPoint("TOPLEFT", menu, "TOPLEFT", 2, -(index - state.offset - 1) * ROW_HEIGHT - 2)
-        entry:SetPoint("TOPRIGHT", menu, "TOPRIGHT", itemRight, -(index - state.offset - 1) * ROW_HEIGHT - 2)
-        entry:SetHeight(ROW_HEIGHT)
-        if index > state.offset and index <= state.offset + visibleRows then
-          entry:Show()
-        else
-          entry:Hide()
-        end
+  local visible = scrollBox:GetVisibleExtent() or (MAX_VISIBLE_ROWS * rowExtent)
+
+  local first = math.floor(offset / rowExtent) + 1 - PREVIEW_MARGIN
+  if first < 1 then first = 1 end
+  local last = first + math.ceil(visible / rowExtent) + PREVIEW_MARGIN * 2
+  if last > size then last = size end
+
+  for index = first, last do
+    EnsurePreview(scrollBox:FindElementData(index))
+  end
+end
+
+-- A menu that fits on screen gets no scroll box, so all of its rows show.
+local function PreviewAllRows(menuFrame)
+  for _, child in ipairs({ menuFrame:GetChildren() }) do
+    EnsurePreview(child)
+  end
+end
+
+local function OnMenuScroll(scrollBox)
+  PreviewScrollWindow(scrollBox)
+end
+
+-- The scroll box is a pooled frame that outlives every menu it has hosted, so
+-- one registration per box covers all later menus and nothing needs cleaning up
+-- when a menu closes.
+local function ArmScrollPreview(menuFrame)
+  local scrollBox = menuFrame and menuFrame.ScrollBox
+  if not scrollBox or scrollBox.customMediaPreviewArmed then return end
+  scrollBox:RegisterCallback(BaseScrollBoxEvents.OnScroll, OnMenuScroll, scrollBox)
+  scrollBox.customMediaPreviewArmed = true
+end
+
+-- Index of the selected entry among the root description's elements. They come
+-- out in the order the menu fed their frames to the data provider, so this is
+-- also the data index.
+local function GetSelectedIndex(rootDescription)
+  for index, description in rootDescription:EnumerateElementDescriptions() do
+    if description:IsRadio() and description:IsSelected() then
+      return index
+    end
+  end
+
+  return nil
+end
+
+-- Centering rather than the minimum scroll puts the entries around the current
+-- selection in view as well, which is what a picker list is for.
+local function OpenAtSelection(menuFrame, rootDescription)
+  local scrollBox = menuFrame and menuFrame.ScrollBox
+  if not scrollBox or not scrollBox:IsShown() then return end
+  if not rootDescription or type(rootDescription.EnumerateElementDescriptions) ~= "function" then return end
+
+  local index = GetSelectedIndex(rootDescription)
+  if not index then return end
+
+  scrollBox:ScrollToElementDataIndex(index, ScrollBoxConstants.AlignCenter, 0, ScrollBoxConstants.NoScrollInterpolation)
+end
+
+local function PreviewMenu(menuFrame, rootDescription)
+  if not rootDescription or not rootDescription.customMediaPreviews then return end
+
+  local scrollBox = menuFrame and menuFrame.ScrollBox
+  if scrollBox and scrollBox:IsShown() then
+    ArmScrollPreview(menuFrame)
+    PreviewScrollWindow(scrollBox)
+  elseif menuFrame then
+    PreviewAllRows(menuFrame)
+  end
+end
+
+local originalOnMenuOpened = DropdownButtonMixin.OnMenuOpened
+
+function DropdownButtonMixin:OnMenuOpened(menu)
+  originalOnMenuOpened(self, menu)
+
+  -- the manager has finished laying the menu out by now, which is what the
+  -- extents and the scroll offset below are measured against
+  local rootDescription = self:GetMenuDescription()
+  OpenAtSelection(menu, rootDescription)
+  PreviewMenu(menu, rootDescription)
+end
+
+-- ClassicAPI's virtualized stride math can compute begin indices past the end of the
+-- data provider ([size+1, size] ranges), erroring out of the menu layout so reopened
+-- menus show nothing. Menu scrollboxes already instantiate every item frame regardless
+-- of virtualization, so run them non-virtualized: the view then uses the trivially
+-- safe full range (1..size).
+local function DevirtualizeMenuScroll(view)
+  if view and type(view.SetVirtualized) == "function" then
+    view:SetVirtualized(false)
+  end
+end
+
+-- pfUI-style scrollbar: thin, flat, accent-green thumb, no steppers. The stock
+-- ClassicAPI bar re-applies Blizzard atlas art on every enable/disable state
+-- change and its thumb sizes itself off atlas info, so those handlers are
+-- stubbed per instance before blanking the art.
+local function ThemeScrollBar(bar)
+  if not bar or bar.customMediaThemed then return end
+  bar.customMediaThemed = true
+
+  bar:SetWidth(12)
+  if bar.Background then bar.Background:Hide() end
+
+  for _, key in ipairs({ "Back", "Forward" }) do
+    local stepper = bar[key]
+    if stepper then
+      stepper.OnButtonStateChanged = function() end
+      stepper:Hide()
+    end
+  end
+
+  local track = bar.Track
+  if track then
+    track:ClearAllPoints()
+    track:SetPoint("TOPLEFT", bar, "TOPLEFT", 2, -2)
+    track:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", -2, 2)
+
+    local thumb = track.Thumb
+    if thumb then
+      thumb.OnButtonStateChanged = function() end
+      thumb.OnSizeChanged = function() end
+      for _, key in ipairs({ "Begin", "Middle", "End" }) do
+        local tex = thumb[key]
+        if tex then tex:SetTexture(0, 0, 0, 0) end
+      end
+      thumb:SetWidth(8)
+      if thumb.thumbTexture then
+        thumb.thumbTexture:ClearAllPoints()
+        thumb.thumbTexture:SetPoint("TOPLEFT", thumb, "TOPLEFT", 0, 0)
+        thumb.thumbTexture:SetPoint("BOTTOMRIGHT", thumb, "BOTTOMRIGHT", 0, 0)
+        thumb.thumbTexture:SetTexture(0.3, 1, 0.8, 0.8)
       end
     end
-
-    slider:SetValue(state.offset)
   end
-  state.RefreshRows = RefreshRows
+end
 
-  slider:SetScript("OnValueChanged", function()
-    state.offset = math.floor((this:GetValue() or 0) + .5)
-    RefreshRows()
-  end)
-
-  menu:EnableMouseWheel(1)
-  menu:SetScript("OnMouseWheel", function()
-    -- arg1 is the wheel delta; capture it into a local (Classic 1.12-safe).
-    local delta = arg1 or 0
-    local maxOffset = math.max(0, state.count - (state.visibleRows or 0))
-    state.offset = math.max(0, math.min(maxOffset, state.offset - delta))
-    slider:SetValue(state.offset)
-    RefreshRows()
-  end)
-
-  local originalShowMenu = dropdown.ShowMenu
-  dropdown.ShowMenu = function(self)
-    if type(originalShowMenu) ~= "function" then return end
-    originalShowMenu(self)
-
-    state.count = #(self.menu or {})
-    state.visibleRows = math.min(state.count, MAX_VISIBLE_ROWS)
-    state.offset = math.min(state.offset, math.max(0, state.count - state.visibleRows))
-
-    -- Cache screen height once per open instead of querying every frame.
-    local screenHeight = GetScreenHeight and GetScreenHeight() or 768
-    local maxMenuHeight = math.max(ROW_HEIGHT + MENU_PADDING, screenHeight - 80)
-    state.visibleRows = math.min(state.visibleRows, math.max(1, math.floor((maxMenuHeight - MENU_PADDING) / ROW_HEIGHT)))
-
-    local visibleHeight = state.visibleRows * ROW_HEIGHT + MENU_PADDING
-    self.menuframe:SetHeight(visibleHeight)
-    state.slider:SetMinMaxValues(0, math.max(0, state.count - state.visibleRows))
-
-    if state.count > state.visibleRows then
-      track:Show()
-      slider:Show()
-      local thumb = slider:GetThumbTexture()
-      if thumb then
-        thumb:SetTexture(.3, 1, .8, .5)
-        thumb:SetWidth(SCROLLBAR_WIDTH)
-        thumb:SetHeight(math.max(18, visibleHeight * state.visibleRows / state.count))
-      end
-      state.offset = math.min(state.offset, math.max(0, state.count - state.visibleRows))
-    else
-      track:Hide()
-      slider:Hide()
-      state.offset = 0
+if MenuProxyMixin and type(MenuProxyMixin.OnLoad) == "function" and not MenuProxyMixin.customMediaDevirtualized then
+  local originalMenuOnLoad = MenuProxyMixin.OnLoad
+  function MenuProxyMixin:OnLoad()
+    originalMenuOnLoad(self)
+    if self.ScrollBox and self.ScrollBox.view then
+      DevirtualizeMenuScroll(self.ScrollBox.view)
     end
+    ThemeScrollBar(self.ScrollBar)
+  end
+  MenuProxyMixin.customMediaDevirtualized = true
+end
 
-    -- Flip upward if opening below the control would run off the screen.
-    local buttonBottom = self:GetBottom()
-    local buttonTop = self:GetTop()
-    if buttonBottom and buttonBottom < visibleHeight and buttonTop and buttonTop + visibleHeight < screenHeight then
-      self.menuframe:ClearAllPoints()
-      self.menuframe:SetPoint("BOTTOMLEFT", self, "TOPLEFT", 0, 2)
-      self.menuframe:SetPoint("BOTTOMRIGHT", self, "TOPRIGHT", 0, 2)
-    else
-      self.menuframe:ClearAllPoints()
-      self.menuframe:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -2)
-      self.menuframe:SetPoint("TOPRIGHT", self, "TOPRIGHT", 0, 2)
+-- One closure per texture path, cached: a menu regenerates on every open and
+-- each row would otherwise allocate a new function.
+local swatchInitializers = {}
+
+local function GetSwatchInitializer(path)
+  local initializer = swatchInitializers[path]
+  if initializer then return initializer end
+
+  initializer = function(frame)
+    -- The row frame is a compositor target, so CreateTexture is disallowed and
+    -- the swatch has to be attached. Rows draw their own art, so this sits
+    -- below the row's hover highlight (BACKGROUND, level -1) and below the
+    -- text, which the font string pool already layers above the row textures.
+    if type(frame.AttachTexture) ~= "function" then return end
+
+    local tex = frame:AttachTexture()
+    tex:SetDrawLayer("BACKGROUND", -1)
+    tex:SetAlpha(PREVIEW_ALPHA)
+    -- Inward offsets: negative y from TOPLEFT and positive y from BOTTOMRIGHT,
+    -- so the swatch stays inside the row instead of bleeding over its neighbours.
+    tex:SetPoint("TOPLEFT", frame, "TOPLEFT", PREVIEW_LEFT, -PREVIEW_INSET)
+    tex:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PREVIEW_RIGHT, PREVIEW_INSET)
+
+    frame.customMediaPreviewTex = tex
+    frame.customMediaPreviewPath = path
+  end
+
+  swatchInitializers[path] = initializer
+  return initializer
+end
+
+-- Rows are pooled and reused by whichever menu acquires them, so a row that
+-- carried a swatch hands its state back when it leaves.
+local function ClearSwatch(frame)
+  frame.customMediaPreviewTex = nil
+  frame.customMediaPreviewPath = nil
+  frame.customMediaPreviewLoaded = nil
+end
+
+-- Opt a freshly generated root description into a scrollable menu and give each
+-- of its radios a swatch. Initializers run in insertion order, after the stock
+-- radio art has been laid down.
+local function ThemeRootDescription(description)
+  if type(description) ~= "table" then return end
+
+  if type(description.SetScrollMode) == "function" then
+    local screenHeight = (UIParent and UIParent:GetHeight()) or 768
+    local maxExtent = math.min(MAX_VISIBLE_ROWS * ROW_HEIGHT, math.max(MIN_VISIBLE_ROWS * ROW_HEIGHT, screenHeight - 120))
+    description:SetScrollMode(maxExtent)
+  end
+
+  -- Every generation hands out a new description proxy, so marking it is
+  -- enough to keep this from chaining over itself.
+  if type(description.CreateRadio) ~= "function" or description.customMediaRadioPatched then return end
+
+  local originalCreateRadio = description.CreateRadio
+  description.CreateRadio = function(self, text, isSelected, setSelected, data)
+    local radio = originalCreateRadio(self, text, isSelected, setSelected, data)
+    if radio and type(radio.AddInitializer) == "function" and IsTexturePath(data) then
+      radio:AddInitializer(GetSwatchInitializer(data))
+      radio:AddResetter(ClearSwatch)
+      -- counts rows carrying a swatch, so a menu without any never goes
+      -- through the preview path
+      description.customMediaPreviews = (description.customMediaPreviews or 0) + 1
     end
-
-    RefreshRows()
+    return radio
   end
-
-  local originalUpdateMenu = dropdown.UpdateMenu
-  dropdown.UpdateMenu = function(self)
-    if type(originalUpdateMenu) ~= "function" then return end
-    originalUpdateMenu(self)
-    if self.menuframe:IsShown() then
-      state.count = #(self.menu or {})
-      state.visibleRows = math.min(state.count, MAX_VISIBLE_ROWS)
-      state.offset = math.min(state.offset, math.max(0, state.count - state.visibleRows))
-      self.menuframe:SetHeight(state.visibleRows * ROW_HEIGHT + MENU_PADDING)
-      state.slider:SetMinMaxValues(0, math.max(0, state.count - state.visibleRows))
-      if state.count > state.visibleRows then track:Show(); slider:Show() else track:Hide(); slider:Hide() end
-      RefreshRows()
-    end
-  end
+  description.customMediaRadioPatched = true
 end
 
-local function CreateScrollableDropDown(name, parent)
-  local dropdown = originalCreateDropDownButton(name, parent)
-  SetupScrollableMenu(dropdown)
-  return dropdown
+local originalCreateDefaultRootMenuDescription = DropdownButtonMixin.CreateDefaultRootMenuDescription
+
+function DropdownButtonMixin:CreateDefaultRootMenuDescription()
+  local description = originalCreateDefaultRootMenuDescription(self)
+  ThemeRootDescription(description)
+  return description
 end
 
-pfUI.api.CreateDropDownButton = CreateScrollableDropDown
-pfUI.api.customMediaDropdownScrollable = true
--- pfUI exposes API functions in its environment for unqualified calls in modules.
-if type(pfUI.env) == "table" then
-  pfUI.env.CreateDropDownButton = CreateScrollableDropDown
-end
-
--- pfUI builds its configuration window while its own addon is loading, before
--- this dependent addon is loaded. Retrofit those already-created dropdowns.
-local function PatchExistingDropdowns(frame)
-  if not frame then return end
-
-  if type(frame.SetMenu) == "function" and type(frame.ShowMenu) == "function" and frame.menuframe then
-    SetupScrollableMenu(frame)
-  end
-
-  local children = { frame:GetChildren() }
-  for _, child in pairs(children) do
-    PatchExistingDropdowns(child)
-  end
-end
-
-if pfUI.gui then
-  PatchExistingDropdowns(pfUI.gui)
-end
+DropdownButtonMixin.customMediaDropdowns = true
