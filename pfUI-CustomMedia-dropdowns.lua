@@ -165,10 +165,10 @@ local function DevirtualizeMenuScroll(view)
   end
 end
 
--- pfUI-style scrollbar: thin, flat, accent-green thumb, no steppers. The stock
--- ClassicAPI bar re-applies Blizzard atlas art on every enable/disable state
--- change and its thumb sizes itself off atlas info, so those handlers are
--- stubbed per instance before blanking the art.
+-- pfUI-style scrollbar: thin, flat, accent-green thumb, no steppers. ClassicAPI
+-- needs its atlas handlers intact because the thumb sizing callback reads
+-- dimensions from the middle slice's atlas. Keep the atlas assigned and hide
+-- the stock slices with alpha instead.
 local function ThemeScrollBar(bar)
   if not bar or bar.customMediaThemed then return end
   bar.customMediaThemed = true
@@ -179,7 +179,6 @@ local function ThemeScrollBar(bar)
   for _, key in ipairs({ "Back", "Forward" }) do
     local stepper = bar[key]
     if stepper then
-      stepper.OnButtonStateChanged = function() end
       stepper:Hide()
     end
   end
@@ -192,11 +191,9 @@ local function ThemeScrollBar(bar)
 
     local thumb = track.Thumb
     if thumb then
-      thumb.OnButtonStateChanged = function() end
-      thumb.OnSizeChanged = function() end
       for _, key in ipairs({ "Begin", "Middle", "End" }) do
         local tex = thumb[key]
-        if tex then tex:SetTexture(0, 0, 0, 0) end
+        if tex then tex:SetAlpha(0) end
       end
       thumb:SetWidth(8)
       if thumb.thumbTexture then
